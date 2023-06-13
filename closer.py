@@ -18,12 +18,12 @@ import matplotlib.pyplot as plt
 batch_size = 2
 learning_rate=0.001
 # data directories
-batch_size = 256
-epochz = 400
+batch_size = 16
+epochz = 100
 learning_rate=0.001
-data_directory_path="C:\\Users\\Sidharth Chandra\\Desktop\\VikX"
-data_dir_train = "C:\\Users\\Sidharth Chandra\\Desktop\\VikX\\Train"  # make sure to use correct slashes for directory paths
-data_dir_validation = "C:\\Users\\Sidharth Chandra\\Desktop\\VikX\\Validation"
+data_directory_path = "Z:\\AstroImageAI\\"
+data_dir_train = "Z:\\AstroImageAI\\TrainData"  # make sure to use correct slashes for directory paths
+data_dir_validation = "Z:\\AstroImageAI\\Validation"
 
 # minimum size
 min_width = 1000
@@ -126,11 +126,11 @@ def star_attention_block(input, ratio=16):
 
     return Multiply()([input, se])
 datagen = ImageDataGenerator(
-    rotation_range=180,
-    width_shift_range=0.5,
-    height_shift_range=0.5,
-    shear_range=0.6,
-    zoom_range=0.6,
+    rotation_range=359,
+    width_shift_range=0,
+    height_shift_range=0,
+    shear_range=0.1,
+    zoom_range=0.1,
     horizontal_flip=True,
     fill_mode='nearest')
 # fit parameters from data
@@ -294,6 +294,8 @@ model = Model(inputs=inputs, outputs=output)
 # print the model summary
 model.summary()
 now = datetime.now()
+
+# format this into a string
 date_time = now.strftime("%Y%m%d_%H%M%S")
 
 # append this to the filename
@@ -318,7 +320,7 @@ output_image = model.predict(sample_image)
 output_image = output_image.squeeze() * 255.0
 output_image = Image.fromarray(output_image.astype(np.uint8))
 output_image.show()
-file_path = f"C:\\Users\\Sidharth Chandra\\Desktop\\VikX\\output_image_{date_time}.png"
+file_path = f"Z:\\AstroImageAI\\output_image_{date_time}.png"
 
 # Save the image
 output_image.save(file_path)
