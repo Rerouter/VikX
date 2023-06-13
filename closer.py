@@ -19,8 +19,8 @@ data_dir_train = "C:\\Users\\Sidharth Chandra\\Desktop\\VikX\\Train"  # make sur
 data_dir_validation = "C:\\Users\\Sidharth Chandra\\Desktop\\VikX\\Validation"
 
 # minimum size
-min_width = 256  # you can change this to your preferred minimum width
-min_height = 256  # you can change this to your preferred minimum height
+min_width = 1000  # you can change this to your preferred minimum width
+min_height = 625  # you can change this to your preferred minimum height
 
 # for grayscale or RGB images
 color_mode = "rgb"  # you can change this to 'grayscale' if you want to handle grayscale images
@@ -98,8 +98,25 @@ def squeeze_excite_block(input, ratio=16):
     channels = input.shape[-1]
     se = GlobalAveragePooling2D()(input)
     se = Reshape((1, 1, channels))(se)
-    se = Dense(channels // ratio, activation='relu')(se)
-    se = Dense(channels, activation='sigmoid')(se)
+
+    # Add a Convolutional layer to capture spatial information
+    se = Conv2D(channels // ratio, kernel_size=1, activation='relu')(se)
+
+    # Modify the attention mechanism to focus on nebulae
+    se = Conv2D(channels, kernel_size=1, activation='sigmoid')(se)
+
+    return Multiply()([input, se])
+def star_attention_block(input, ratio=16):
+    channels = input.shape[-1]
+    se = GlobalAveragePooling2D()(input)
+    se = Reshape((1, 1, channels))(se)
+
+    # Add a Convolutional layer to capture spatial information
+    se = Conv2D(channels // ratio, kernel_size=1, activation='relu')(se)
+
+    # Modify the attention mechanism to focus on stars
+    se = Conv2D(channels, kernel_size=1, activation='sigmoid')(se)
+
     return Multiply()([input, se])
 num_channels = 1 if color_mode == 'grayscale' else 3
 inputs = Input(shape=(None, None, num_channels))
@@ -111,85 +128,143 @@ conv1 = LeakyReLU(alpha=alphaV)(conv1)
 conv2 = Conv2D(64, 3, padding='same', dilation_rate=2)(conv1)
 conv2 = squeeze_excite_block(conv2)
 conv2 = LeakyReLU(alpha=alphaV)(conv2)
+conv2 = Conv2D(64, 3, padding='same')(conv2)
+conv2 = LeakyReLU(alpha=alphaV)(conv2)
 pool1 = MaxPooling2D(pool_size=(2, 2))(conv2)
 
 skip1 = conv2
 
 conv3 = Conv2D(128, 3, padding='same')(pool1)
+conv3 = squeeze_excite_block(conv3)
+conv3 = LeakyReLU(alpha=alphaV)(conv3)
+conv3 = Conv2D(128, 3, padding='same')(conv3)
 conv3 = LeakyReLU(alpha=alphaV)(conv3)
 
 conv4 = Conv2D(128, 3, padding='same')(conv3)
+conv4 = LeakyReLU(alpha=alphaV)(conv4)
+conv4 = Conv2D(128, 3, padding='same')(conv4)
 conv4 = LeakyReLU(alpha=alphaV)(conv4)
 pool2 = MaxPooling2D(pool_size=(2, 2))(conv4)
 
 conv5 = Conv2D(256, 3, padding='same')(pool2)
 conv5 = LeakyReLU(alpha=alphaV)(conv5)
+conv5 = Conv2D(256, 3, padding='same')(conv5)
+conv5 = LeakyReLU(alpha=alphaV)(conv5)
 
 conv6 = Conv2D(256, 3, padding='same')(conv5)
 conv6 = LeakyReLU(alpha=alphaV)(conv6)
+conv6 = Conv2D(256, 3, padding='same')(conv6)
+conv6 = LeakyReLU(alpha=alphaV)(conv6)
 
 conv7 = Conv2D(256, 3, padding='same', dilation_rate=2)(conv6)
+conv7 = LeakyReLU(alpha=alphaV)(conv7)
+conv7 = Conv2D(256, 3, padding='same')(conv7)
 conv7 = LeakyReLU(alpha=alphaV)(conv7)
 pool3 = MaxPooling2D(pool_size=(2, 2))(conv7)
 
 conv8 = Conv2D(512, 3, padding='same')(pool3)
 conv8 = LeakyReLU(alpha=alphaV)(conv8)
+conv8 = Conv2D(512, 3, padding='same')(conv8)
+conv8 = LeakyReLU(alpha=alphaV)(conv8)
 
 conv9 = Conv2D(512, 3, padding='same')(conv8)
 conv9 = LeakyReLU(alpha=alphaV)(conv9)
+conv9 = Conv2D(512, 3, padding='same')(conv9)
+conv9 = LeakyReLU(alpha=alphaV)(conv9)
 
 conv10 = Conv2D(512, 3, padding='same')(conv9)
+conv10 = LeakyReLU(alpha=alphaV)(conv10)
+conv10 = Conv2D(512, 3, padding='same')(conv10)
 conv10 = LeakyReLU(alpha=alphaV)(conv10)
 pool4 = MaxPooling2D(pool_size=(2, 2))(conv10)
 
 # Bottleneck
 conv11 = Conv2D(1024, 3, padding='same')(pool4)
 conv11 = LeakyReLU(alpha=alphaV)(conv11)
-
-conv12 = Conv2D(1024, 3, padding='same')(conv11)
-conv12 = LeakyReLU(alpha=alphaV)(conv12)
+conv11 = Conv2D(1024, 3, padding='same')(conv11)
+conv11 = LeakyReLU(alpha=alphaV)(conv11)
 
 # Decoder
-upsample1 = UpSampling2D((2, 2))(conv12)
+upsample1 = UpSampling2D((2, 2))(conv11)
+upsample1 = squeeze_excite_block(upsample1)
+upsample1 = Conv2D(512, 3, padding='same')(upsample1)
+upsample1 = LeakyReLU(alpha=alphaV)(upsample1)
+upsample1 = Conv2D(512, 3, padding='same')(upsample1)
+upsample1 = LeakyReLU(alpha=alphaV)(upsample1)
 upsample1 = tf.image.resize(upsample1, tf.shape(conv10)[1:3])
 concat1 = Concatenate()([upsample1, conv10])
 conv13 = Conv2D(512, 3, padding='same')(concat1)
 conv13 = LeakyReLU(alpha=alphaV)(conv13)
+conv13 = Conv2D(512, 3, padding='same')(conv13)
+conv13 = LeakyReLU(alpha=alphaV)(conv13)
 
 conv14 = Conv2D(512, 3, padding='same', dilation_rate=2)(conv13)
+conv14 = LeakyReLU(alpha=alphaV)(conv14)
+conv14 = Conv2D(512, 3, padding='same')(conv14)
 conv14 = LeakyReLU(alpha=alphaV)(conv14)
 
 conv15 = Conv2D(512, 3, padding='same')(conv14)
 conv15 = LeakyReLU(alpha=alphaV)(conv15)
+conv15 = Conv2D(512, 3, padding='same')(conv15)
+conv15 = LeakyReLU(alpha=alphaV)(conv15)
 
 upsample2 = UpSampling2D((2, 2))(conv15)
+upsample2 = star_attention_block(upsample2)
+upsample2 = Conv2D(256, 3, padding='same')(upsample2)
+upsample2 = LeakyReLU(alpha=alphaV)(upsample2)
+upsample2 = Conv2D(256, 3, padding='same')(upsample2)
+upsample2 = LeakyReLU(alpha=alphaV)(upsample2)
 upsample2 = tf.image.resize(upsample2, tf.shape(conv7)[1:3])
 concat2 = Concatenate()([upsample2, conv7])
 conv16 = Conv2D(256, 3, padding='same')(concat2)
 conv16 = LeakyReLU(alpha=alphaV)(conv16)
+conv16 = Conv2D(256, 3, padding='same')(conv16)
+conv16 = LeakyReLU(alpha=alphaV)(conv16)
 
 conv17 = Conv2D(256, 3, padding='same', dilation_rate=2)(conv16)
+conv17 = LeakyReLU(alpha=alphaV)(conv17)
+conv17 = Conv2D(256, 3, padding='same')(conv17)
 conv17 = LeakyReLU(alpha=alphaV)(conv17)
 
 conv18 = Conv2D(256, 3, padding='same')(conv17)
 conv18 = LeakyReLU(alpha=alphaV)(conv18)
+conv18 = Conv2D(256, 3, padding='same')(conv18)
+conv18 = LeakyReLU(alpha=alphaV)(conv18)
 
 upsample3 = UpSampling2D((2, 2))(conv18)
+upsample3 = squeeze_excite_block(upsample3)
+upsample3 = Conv2D(128, 3, padding='same')(upsample3)
+upsample3 = LeakyReLU(alpha=alphaV)(upsample3)
+upsample3 = Conv2D(128, 3, padding='same')(upsample3)
+upsample3 = LeakyReLU(alpha=alphaV)(upsample3)
 upsample3 = tf.image.resize(upsample3, tf.shape(conv4)[1:3])
 concat3 = Concatenate()([upsample3, conv4])
 conv19 = Conv2D(128, 3, padding='same')(concat3)
 conv19 = LeakyReLU(alpha=alphaV)(conv19)
+conv19 = Conv2D(128, 3, padding='same')(conv19)
+conv19 = LeakyReLU(alpha=alphaV)(conv19)
 
 conv20 = Conv2D(128, 3, padding='same')(conv19)
 conv20 = LeakyReLU(alpha=alphaV)(conv20)
+conv20 = Conv2D(128, 3, padding='same')(conv20)
+conv20 = LeakyReLU(alpha=alphaV)(conv20)
 
 upsample4 = UpSampling2D((2, 2))(conv20)
+upsample4 = star_attention_block(upsample4)
+upsample4 = Conv2D(64, 3, padding='same')(upsample4)
+upsample4 = LeakyReLU(alpha=alphaV)(upsample4)
+upsample4 = Conv2D(64, 3, padding='same')(upsample4)
+upsample4 = LeakyReLU(alpha=alphaV)(upsample4)
 upsample4 = tf.image.resize(upsample4, tf.shape(conv2)[1:3])
 concat4 = Concatenate()([upsample4, conv2])
 conv21 = Conv2D(64, 3, padding='same')(concat4)
 conv21 = LeakyReLU(alpha=alphaV)(conv21)
+conv21 = Conv2D(64, 3, padding='same')(conv21)
+conv21 = LeakyReLU(alpha=alphaV)(conv21)
 
 conv22 = Conv2D(64, 3, padding='same', dilation_rate=3)(conv21)
+conv22 = LeakyReLU(alpha=alphaV)(conv22)
+conv22 = Conv2D(64, 3, padding='same')(conv22)
 conv22 = LeakyReLU(alpha=alphaV)(conv22)
 
 # Residual connection
@@ -206,7 +281,7 @@ model.save('VikX.h5')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
 model.compile(optimizer=optimizer, loss='mse')
-model.fit(train_images, train_images, validation_data=(val_images, val_images), epochs=40, batch_size=batch_size)
+model.fit(train_images, train_images, validation_data=(val_images, val_images), epochs=100, batch_size=batch_size)
 sample_image_path = r"C:\Users\Sidharth Chandra\Desktop\VikX\Validation\ANathanNAstarless.tif"
 sample_image = Image.open(sample_image_path)
 sample_image = preprocess_image_2(sample_image)
