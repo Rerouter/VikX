@@ -15,8 +15,6 @@ from scipy.optimize import curve_fit
 from tensorflow.signal import fft2d, ifft2d, fftshift
 import matplotlib.pyplot as plt
 #Hyper
-batch_size = 2
-learning_rate=0.001
 # data directories
 batch_size = 16
 epochz = 100
