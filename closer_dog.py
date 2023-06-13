@@ -12,13 +12,16 @@ import numpy as np
 from scipy.optimize import curve_fit
 from tensorflow.signal import fft2d, ifft2d, fftshift
 from datetime import datetime
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import matplotlib.pyplot as plt
 
-#Hyper
-batch_size = 64
-epochz = 900
+#Hyper parameters
+batch_size = 256
+epochz = 400
 learning_rate=0.001
 # data directories
+#todo get these easier to map
+data_directory_path = "Z:\\AstroImageAI\\"
 data_dir_train = "Z:\\AstroImageAI\\TrainData"  # make sure to use correct slashes for directory paths
 data_dir_validation = "Z:\\AstroImageAI\\Validation"
 
@@ -97,6 +100,20 @@ val_images = pad_images(val_images)
 # normalize images
 train_images = train_images / 255.0
 val_images = val_images / 255.0
+
+# Create an image data generator object
+datagen = ImageDataGenerator(
+    rotation_range=180,
+    width_shift_range=0.5,
+    height_shift_range=0.5,
+    shear_range=0.6,
+    zoom_range=0.6,
+    horizontal_flip=True,
+    fill_mode='nearest')
+# fit parameters from data
+datagen.fit(train_images)
+
+
 #define model
 def squeeze_excite_block(input, ratio=16):
     channels = input.shape[-1]
@@ -213,12 +230,14 @@ filename = f"VikX_{date_time}_Batch_{batch_size}_Epoch_{epochz}.h5"
 
 
 # save the model
-model.save(filename)
+model.save(data_directory_path+filename)
 # train the model
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
 model.compile(optimizer=optimizer, loss='mse')
-history = model.fit(train_images, train_images, validation_data=(val_images, val_images), epochs=epochz, batch_size=batch_size)
+history = model.fit(datagen.flow(train_images, train_images, batch_size=batch_size), 
+                    validation_data=(val_images, val_images), 
+                    epochs=epochz)
 sample_image_path = r"Z:\\AstroImageAI\\Validation\\edit2_starless.tif"
 sample_image = Image.open(sample_image_path)
 sample_image = preprocess_image_2(sample_image)
@@ -228,7 +247,7 @@ output_image = model.predict(sample_image)
 output_image = output_image.squeeze() * 255.0
 output_image = Image.fromarray(output_image.astype(np.uint8))
 # Define the file path
-file_path = r"Z:\\AstroImageAI\\output_image_{date_time}.png"
+file_path = f"Z:\\AstroImageAI\\output_image_{date_time}.png"
 
 # Save the image
 output_image.save(file_path)
@@ -240,7 +259,7 @@ plt.plot(history.history['val_loss'])
 plt.title('model loss')
 plt.ylabel('loss')
 plt.xlabel('epoch')
-plt.legend(['train', 'validation'], loc='upper left')
+plt.legend(['train', 'validation'], loc='upper right')
 
 # save the figure to a file
 plt.savefig('Z:\\AstroImageAI\\learning_curve.png')
