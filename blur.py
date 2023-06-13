@@ -1,76 +1,48 @@
 import cv2
 import numpy as np
 import os
+import random
 from PIL import Image, ImageFilter, ImageEnhance
 
 # define data directories
-data_dir_train = "C:\\Users\\Sidharth Chandra\\Desktop\\VikX\\Train"  # update with your directory paths
-data_dir_validation = "C:\\Users\\Sidharth Chandra\\Desktop\\VikX\\Validation"
+data_dir_train = "Z:\\AstroImageAI\\TrainData"  # update with your directory paths
+data_dir_validation = "Z:\\AstroImageAI\\Validation"
 
-# minimum size
-min_width = 1  # update based on your preferences
-min_height = 1
-
-# color mode
-color_mode = "rgb"
-
-# function to apply distortions
+#randomization
 def apply_distortions(image, distortions):
-    # apply gaussian blur
     if 'blur' in distortions:
-        image = image.filter(ImageFilter.GaussianBlur(radius=15))  # adjust radius as needed
+        image = image.filter(ImageFilter.GaussianBlur(radius=random.uniform(1, 5)))
 
-    # reduce contrast
     if 'contrast' in distortions:
         enhancer = ImageEnhance.Contrast(image)
-        image = enhancer.enhance(0.5)  # reduce contrast; adjust as needed
+        image = enhancer.enhance(random.uniform(0.5, 1.5))
+
+    if 'rotate' in distortions:
+        image = image.rotate(random.randint(-30, 30))
+
+    if 'flip' in distortions:
+        if random.random() > 0.5:  # flip with 50% probability
+            image = image.transpose(Image.FLIP_LEFT_RIGHT)
+
+    if 'brightness' in distortions:
+        enhancer = ImageEnhance.Brightness(image)
+        image = enhancer.enhance(random.uniform(0.7, 1.3))
 
     # convert PIL Image to OpenCV Mat for geometric transformations
     image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
 
-    # apply star shape distortion
-    if 'star_distortion' in distortions:
-        # adjust parameters as needed
-        rows, cols, ch = image.shape
-        src_points = np.float32([[cols/2, rows/2], [0,0], [cols-1,0]])
-        dst_points = np.float32([[cols/2, rows/3], [0,0], [cols-1,0]])
-        matrix = cv2.getAffineTransform(src_points, dst_points)
-        image = cv2.warpAffine(image, matrix, (cols, rows))
-
-    # apply trailing
-    if 'trailing' in distortions:
-        # adjust parameters as needed
-        rows, cols, ch = image.shape
-        src_points = np.float32([[0, 0], [0, rows-1], [cols-1, 0]])
-        dst_points = np.float32([[cols*0.1, 0], [cols*0.1, rows-1], [cols-1, 0]])  # 10% shift to right
-        matrix = cv2.getAffineTransform(src_points, dst_points)
-        image = cv2.warpAffine(image, matrix, (cols, rows))
-
-    # convert OpenCV Mat back to PIL Image for haze and gradient application
-    image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-
-    # apply haze
-    if 'haze' in distortions:
-        haze = Image.new('RGB', image.size, color=(210,210,210))
-        image = Image.blend(image, haze, alpha=0.1)  # adjust alpha for desired level of haze
-
-    # apply gradient
-    """
-    if 'gradient' in distortions:
-        gradient = Image.new('L', image.size, color=128)
-        image = Image.blend(image, gradient, alpha=0.1)  # adjust alpha for desired level of gradient
-    """
+    # rest of your code for star_distortion, trailing, haze, etc...
 
     return image
-
-# example usage:
-distortions = ['blur', 'haze']
 
 # load and process training images
 train_images = []
 for filename in os.listdir(data_dir_validation):
+    available_distortions = ['blur', 'haze', 'contrast', 'rotate', 'flip', 'brightness']
+    num_distortions_to_apply = random.randint(1, len(available_distortions))
+    distortions = random.sample(available_distortions, num_distortions_to_apply)
+
     im = Image.open(os.path.join(data_dir_validation, filename)).convert('RGB')
     im = apply_distortions(im, distortions)
-    image_path=os.path.join(data_dir_train,filename)
-    print(image_path)
+    image_path = os.path.join(data_dir_train,filename)
     im.save(image_path)
