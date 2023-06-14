@@ -129,28 +129,42 @@ conv2 = Conv2D(64, 3, padding='same', dilation_rate=2)(conv1)
 conv2 = squeeze_excite_block(conv2)
 conv2 = LeakyReLU(alpha=alphaV)(conv2)
 conv2 = Conv2D(64, 3, padding='same')(conv2)
+conv2 = LeakyReLU(alpha=alphaV)(conv2)
+pool1 = MaxPooling2D(pool_size=(2, 2))(conv2)
 
 skip1 = conv2
 
 conv3 = Conv2D(128, 3, padding='same')(pool1)
 conv3 = squeeze_excite_block(conv3)
 conv3 = LeakyReLU(alpha=alphaV)(conv3)
+conv3 = Conv2D(128, 3, padding='same')(conv3)
+conv3 = LeakyReLU(alpha=alphaV)(conv3)
 
 conv4 = Conv2D(128, 3, padding='same')(conv3)
+conv4 = LeakyReLU(alpha=alphaV)(conv4)
+conv4 = Conv2D(128, 3, padding='same')(conv4)
 conv4 = LeakyReLU(alpha=alphaV)(conv4)
 pool2 = MaxPooling2D(pool_size=(2, 2))(conv4)
 
 conv5 = Conv2D(256, 3, padding='same')(pool2)
 conv5 = LeakyReLU(alpha=alphaV)(conv5)
+conv5 = Conv2D(256, 3, padding='same')(conv5)
+conv5 = LeakyReLU(alpha=alphaV)(conv5)
 
 conv6 = Conv2D(256, 3, padding='same')(conv5)
+conv6 = LeakyReLU(alpha=alphaV)(conv6)
+conv6 = Conv2D(256, 3, padding='same')(conv6)
 conv6 = LeakyReLU(alpha=alphaV)(conv6)
 
 conv7 = Conv2D(256, 3, padding='same', dilation_rate=2)(conv6)
 conv7 = LeakyReLU(alpha=alphaV)(conv7)
+conv7 = Conv2D(256, 3, padding='same')(conv7)
+conv7 = LeakyReLU(alpha=alphaV)(conv7)
 pool3 = MaxPooling2D(pool_size=(2, 2))(conv7)
 
 conv8 = Conv2D(512, 3, padding='same')(pool3)
+conv8 = LeakyReLU(alpha=alphaV)(conv8)
+conv8 = Conv2D(512, 3, padding='same')(conv8)
 conv8 = LeakyReLU(alpha=alphaV)(conv8)
 
 conv9 = Conv2D(512, 3, padding='same')(conv8)
