@@ -16,16 +16,16 @@ from tensorflow.signal import fft2d, ifft2d, fftshift
 import matplotlib.pyplot as plt
 #Hyper
 # data directories
-batch_size = 16
-epochz = 100
+batch_size = 2
+epochz = 50
 learning_rate=0.001
-data_directory_path = "Z:\\AstroImageAI\\"
-data_dir_train = "Z:\\AstroImageAI\\TrainData"  # make sure to use correct slashes for directory paths
-data_dir_validation = "Z:\\AstroImageAI\\Validation"
+data_directory_path = r"C:\Users\Sidharth Chandra\Desktop\VikX"
+data_dir_train = r"C:\Users\Sidharth Chandra\Desktop\VikX\Train"  # make sure to use correct slashes for directory paths
+data_dir_validation = r"C:\Users\Sidharth Chandra\Desktop\VikX\Validation"
 
 # minimum size
-min_width = 1000
-min_height = 625
+min_width = 256
+min_height = 256
 
 # for grayscale or RGB images
 color_mode = "rgb"  # you can change this to 'grayscale' if you want to handle grayscale images
@@ -124,12 +124,9 @@ def star_attention_block(input, ratio=16):
 
     return Multiply()([input, se])
 datagen = ImageDataGenerator(
-    rotation_range=359,
     width_shift_range=0,
     height_shift_range=0,
-    shear_range=0.1,
     zoom_range=0.1,
-    horizontal_flip=True,
     fill_mode='nearest')
 # fit parameters from data
 datagen.fit(train_images)
@@ -297,11 +294,10 @@ now = datetime.now()
 date_time = now.strftime("%Y%m%d_%H%M%S")
 
 # append this to the filename
-filename = f"VikX_{date_time}_Batch_{batch_size}_Epoch_{epochz}.h5"
 
 
 # save the model
-model.save(data_directory_path+filename)
+model.save("VikX.h5")
 # train the model
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
@@ -318,7 +314,7 @@ output_image = model.predict(sample_image)
 output_image = output_image.squeeze() * 255.0
 output_image = Image.fromarray(output_image.astype(np.uint8))
 output_image.show()
-file_path = f"Z:\\AstroImageAI\\output_image_{date_time}.png"
+file_path = f"C:\\Users\\Sidharth Chandra\\Desktop\\VikX\\output_image_{date_time}.png"
 
 # Save the image
 output_image.save(file_path)
@@ -333,7 +329,7 @@ plt.xlabel('epoch')
 plt.legend(['train', 'validation'], loc='upper right')
 
 # save the figure to a file
-plt.savefig('Z:\\AstroImageAI\\learning_curve.png')
+plt.savefig('C:\\Users\\Sidharth Chandra\\Desktop\\VikX\\learning_curve.png')
 
 
 plt.show()
