@@ -1,7 +1,8 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import LeakyReLU, PReLU, ELU, Multiply, Dense, Reshape, GlobalAveragePooling2D, Input, Conv2DTranspose, Conv2D, BatchNormalization, Dropout, MaxPooling2D,Concatenate,UpSampling2D,Add
+from tensorflow.keras.layers import LeakyReLU, PReLU, ELU, Multiply, Dense, Reshape, GlobalAveragePooling2D, Input, Conv2DTranspose, Conv2D, BatchNormalization, Dropout, \
+    MaxPooling2D, Concatenate, UpSampling2D, Add
 from PIL import Image
 import os
 import cv2
@@ -11,12 +12,14 @@ from scipy.ndimage import gaussian_gradient_magnitude
 import numpy as np
 from scipy.optimize import curve_fit
 from tensorflow.signal import fft2d, ifft2d, fftshift
-#Hyper
+
+# Hyper
 batch_size = 2
-learning_rate=0.001
+learning_rate = 0.001
 # data directories
-data_dir_train = "C:\\Users\\Sidharth Chandra\\Desktop\\VikX\\Train"  # make sure to use correct slashes for directory paths
-data_dir_validation = "C:\\Users\\Sidharth Chandra\\Desktop\\VikX\\Validation"
+base_dir = os.path.dirname(os.path.abspath(__file__))
+data_dir_train = os.path.join(base_dir, 'Train')
+data_dir_validation = os.path.join(base_dir, 'Validation')
 
 # minimum size
 min_width = 256  # you can change this to your preferred minimum width
@@ -24,6 +27,7 @@ min_height = 256  # you can change this to your preferred minimum height
 
 # for grayscale or RGB images
 color_mode = "rgb"  # you can change this to 'grayscale' if you want to handle grayscale images
+
 
 def sharpness_metric(y_true, y_pred):
     y_true_fft = fftshift(fft2d(tf.cast(y_true, tf.complex64)))
@@ -36,6 +40,7 @@ def sharpness_metric(y_true, y_pred):
 
     return sharpness_loss
 
+
 def preprocess_image(img):
     # resize the image if it's smaller than the minimum size
     img = img.resize((min(min_width, img.width), min(min_height, img.height)))
@@ -44,6 +49,8 @@ def preprocess_image(img):
     img = img.convert(color_mode.upper())
 
     return np.array(img)
+
+
 def preprocess_image_2(img):
     # resize the image if it's smaller than the minimum size
     img = img.resize((min(2000, img.width), min(2000, img.height)))
@@ -52,6 +59,8 @@ def preprocess_image_2(img):
     img = img.convert(color_mode.upper())
 
     return np.array(img)
+
+
 def pad_images(images):
     max_height = max(image.shape[0] for image in images)
     max_width = max(image.shape[1] for image in images)
@@ -62,6 +71,7 @@ def pad_images(images):
         padded_image = np.pad(image, ((0, pad_height), (0, pad_width), (0, 0)), mode='constant')
         padded_images.append(padded_image)
     return np.array(padded_images)
+
 
 # load images
 train_images = []
@@ -93,7 +103,9 @@ val_images = pad_images(val_images)
 # normalize images
 train_images = train_images / 255.0
 val_images = val_images / 255.0
-#define model
+
+
+# define model
 def squeeze_excite_block(input, ratio=16):
     channels = input.shape[-1]
     se = GlobalAveragePooling2D()(input)
@@ -101,9 +113,11 @@ def squeeze_excite_block(input, ratio=16):
     se = Dense(channels // ratio, activation='relu')(se)
     se = Dense(channels, activation='sigmoid')(se)
     return Multiply()([input, se])
+
+
 num_channels = 1 if color_mode == 'grayscale' else 3
 inputs = Input(shape=(None, None, num_channels))
-alphaV=0.1
+alphaV = 0.1
 # Encoder
 conv1 = Conv2D(64, 3, padding='same')(inputs)
 conv1 = LeakyReLU(alpha=alphaV)(conv1)
@@ -203,7 +217,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
 model.compile(optimizer=optimizer, loss='mse')
 model.fit(train_images, train_images, validation_data=(val_images, val_images), epochs=300, batch_size=batch_size)
-sample_image_path = r"C:\Users\Sidharth Chandra\Desktop\VikX\Validation\ANathanNAstarless.tif"
+sample_image_path = os.path.join(data_dir_validation, "ANathanNAstarless.tif")
 sample_image = Image.open(sample_image_path)
 sample_image = preprocess_image_2(sample_image)
 sample_image = sample_image / 255.0
