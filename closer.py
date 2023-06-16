@@ -41,15 +41,37 @@ def sharpness_metric(y_true, y_pred):
     return sharpness_loss
 
 
-def preprocess_image(img):
-    # resize the image if it's smaller than the minimum size
-    img = img.resize((min(min_width, img.width), min(min_height, img.height)))
+def preprocess_image(img, target_size=(min_width, min_height), color_mode='rgb'):
+    height, width, _ = img.shape
+
+    # find the larger dimension
+    max_dim = max(height, width)
+
+    # find scale factor
+    scale_factor = target_size[0] / max_dim
+
+    # calculate new dimensions
+    new_height, new_width = int(height * scale_factor), int(width * scale_factor)
+
+    # resize the image so the larger dimension fits the target size
+    img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+
+    # pad the image to fit the target size
+    delta_w = target_size[1] - new_width
+    delta_h = target_size[0] - new_height
+    top, bottom = delta_h // 2, delta_h - (delta_h // 2)
+    left, right = delta_w // 2, delta_w - (delta_w // 2)
+
+    color = [0, 0, 0]
+    img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)
 
     # convert the image to RGB or grayscale
-    img = img.convert(color_mode.upper())
+    if color_mode == 'rgb':
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    elif color_mode == 'gray':
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    return np.array(img)
-
+    return img
 
 def preprocess_image_2(img):
     # resize the image if it's smaller than the minimum size
@@ -73,11 +95,56 @@ def pad_images(images):
     return np.array(padded_images)
 
 
+def equalize_and_normalize_hist(img):
+    # Compute the maximum pixel value based on the data type of the image
+    max_pixel_value = np.iinfo(img.dtype).max
+
+    # Reshape the image to a 1D array.
+    img_flat = img.flatten()
+
+    # Get the histogram of the image.
+    hist, bins = np.histogram(img_flat, max_pixel_value+1, [0,max_pixel_value+1])
+
+    # Compute the cumulative distribution function of the histogram.
+    cdf = hist.cumsum()
+
+    # Mask all zeros in the cumulative distribution function.
+    cdf_m = np.ma.masked_equal(cdf, 0)
+
+    # Perform the histogram equalization.
+    cdf_m = (cdf_m - cdf_m.min()) * max_pixel_value / (cdf_m.max() - cdf_m.min())
+
+    # Fill masked pixels with zero and cast the result to the appropriate integer datatype.
+    cdf = np.ma.filled(cdf_m, 0).astype(img.dtype)
+
+    # Use the cumulative distribution function as a lookup table to equalize the pixels in the image.
+    img_eq_flat = cdf[img_flat]
+
+    # Reshape the equalized array back into the original 3D shape.
+    img_eq = img_eq_flat.reshape(img.shape)
+
+    # Normalize the equalized image to the range [0,1].
+    img_norm = img_eq / max_pixel_value
+
+    return img_norm
+
+
+def open_image_as_np_array(image_path):
+    # cv2.IMREAD_UNCHANGED ensures that the image's bit depth is preserved
+    image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+
+    # cv2 reads images in BGR format, convert it to RGB
+    if len(image.shape) == 3:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    return image
+
+
 # load images
 train_images = []
 train_shapes = []  # store the original shapes of the images
 for filename in os.listdir(data_dir_train):
-    im = Image.open(os.path.join(data_dir_train, filename))
+    im = open_image_as_np_array(os.path.join(data_dir_train, filename))
     im_shape = im.size  # store the original shape
     im = preprocess_image(im)
     train_images.append(im)
@@ -86,7 +153,7 @@ for filename in os.listdir(data_dir_train):
 val_images = []
 val_shapes = []  # store the original shapes of the images
 for filename in os.listdir(data_dir_validation):
-    im = Image.open(os.path.join(data_dir_validation, filename))
+    im = open_image_as_np_array(os.path.join(data_dir_validation, filename))
     im_shape = im.size  # store the original shape
     im = preprocess_image(im)
     val_images.append(im)
@@ -101,8 +168,8 @@ train_images = pad_images(train_images)
 val_images = pad_images(val_images)
 
 # normalize images
-train_images = train_images / 255.0
-val_images = val_images / 255.0
+train_images = np.array([equalize_and_normalize_hist(img) for img in train_images])
+val_images = np.array([equalize_and_normalize_hist(img) for img in val_images])
 
 
 # define model
@@ -220,7 +287,7 @@ model.fit(train_images, train_images, validation_data=(val_images, val_images), 
 sample_image_path = os.path.join(data_dir_validation, "ANathanNAstarless.tif")
 sample_image = Image.open(sample_image_path)
 sample_image = preprocess_image_2(sample_image)
-sample_image = sample_image / 255.0
+sample_image = normalize_image(equalize_hist_color(sample_image))
 sample_image = np.expand_dims(sample_image, axis=0)
 output_image = model.predict(sample_image)
 output_image = output_image.squeeze() * 255.0
